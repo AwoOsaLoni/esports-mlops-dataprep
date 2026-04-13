@@ -1,11 +1,14 @@
 import pandas as pd
 import numpy as np
 import random
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+import pandas as pd
 
-# Configuración de reproducibilidad
 np.random.seed(42)
 
-# Definición de parámetros
 n_rows = 1000
 games = ['League of Legends', 'Valorant', 'Dota 2', 'CS:GO', 'Apex Legends', 'LoL', 'valorant'] # Incluye duplicados inconsistentes
 regions = ['NA', 'EUW', 'KR', 'LAN', 'BR', 'na', 'euw']
@@ -30,111 +33,78 @@ data = {
 
 df = pd.DataFrame(data)
 
-# --- INSERCIÓN DE RUIDO Y ERRORES (Para tu actividad) ---
-
-# 1. Valores faltantes (NaN) en seguidores e ingresos
 df.loc[df.sample(frac=0.05).index, 'followers_count'] = np.nan
 df.loc[df.sample(frac=0.03).index, 'monthly_revenue_usd'] = np.nan
 
-# 2. Outliers (Valores imposibles)
 df.at[10, 'hours_played_weekly'] = 200 # Más horas de las que tiene la semana
 df.at[25, 'win_rate'] = 5.5 # Porcentaje mayor a 1 (o 100)
 
-# 3. Registros duplicados
 df = pd.concat([df, df.iloc[[50, 150, 250]]], ignore_index=True)
 
-# Guardar a CSV
 df.to_csv('esports_pro_players_dataset.csv', index=False)
 print("¡Archivo 'esports_pro_players_dataset.csv' generado con éxito!")
 
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-# Cargar el dataset
 df = pd.read_csv('esports_pro_players_dataset.csv')
 
-# Inspección básica
 print("--- Información General ---")
 print(df.info())
 
 print("\n--- Estadísticas Descriptivas ---")
-# Aquí detectaremos si hay valores imposibles (ej. win_rate > 1)
 print(df.describe())
 
-# Validar Win Rate
 outliers_winrate = df[df['win_rate'] > 1.0]
 print(f"Jugadores con Win Rate imposible: {len(outliers_winrate)}")
 
-# Validar Horas Semanales
 outliers_hours = df[df['hours_played_weekly'] > 168]
 print(f"Jugadores con horas imposibles: {len(outliers_hours)}")
 
 print(f"Valores nulos por columna:\n{df.isnull().sum()}")
 print(f"\nCantidad de registros duplicados: {df.duplicated().sum()}")
 
-# Configurar el estilo de las gráficas
 sns.set_theme(style="whitegrid")
 
-# 1. Histograma de Ingresos Mensuales
 plt.figure(figsize=(10, 6))
 sns.histplot(df['monthly_revenue_usd'], kde=True, color='teal')
 plt.title('Distribución de Ingresos Mensuales')
 plt.show()
 
-# 2. Relación entre Seguidores e Ingresos (Scatter Plot)
 plt.figure(figsize=(10, 6))
 sns.scatterplot(data=df, x='followers_count', y='monthly_revenue_usd', hue='region')
 plt.title('Relación: Seguidores vs Ingresos')
 plt.show()
 
-# Rellenar seguidores con la mediana
 median_followers = df['followers_count'].median()
 df['followers_count'] = df['followers_count'].fillna(median_followers)
 
-# Rellenar ingresos con el promedio
 mean_revenue = df['monthly_revenue_usd'].mean()
 df['monthly_revenue_usd'] = df['monthly_revenue_usd'].fillna(mean_revenue)
 
-# Unificar nombres de juegos
 game_mapping = {
     'LoL': 'League of Legends',
     'valorant': 'Valorant'
 }
 df['game_title'] = df['game_title'].replace(game_mapping)
 
-# Unificar regiones a mayúsculas y quitar espacios
 df['region'] = df['region'].str.upper().str.strip()
 
-# Corregir Win Rate (No puede ser mayor a 1.0)
 df.loc[df['win_rate'] > 1.0, 'win_rate'] = 0.5 # Asignamos un valor neutro o el máximo lógico
 
-# Corregir Horas Semanales (Máximo 168)
 df.loc[df['hours_played_weekly'] > 168, 'hours_played_weekly'] = 168
 
-# Eliminar filas idénticas
 df = df.drop_duplicates()
 
-# Reiniciar el índice para que sea continuo
 df = df.reset_index(drop=True)
 
 df.to_csv('esports_cleaned.csv', index=False)
 print("¡Limpieza completada! El dataset está listo para el análisis.")
 
-from sklearn.model_selection import train_test_split
-
-# 1. Definir X (características) y y (lo que queremos predecir: monthly_revenue_usd)
-# Eliminamos columnas de ID o nombre que no aportan al cálculo matemático
 X = df.drop(['player_id', 'player_name', 'monthly_revenue_usd'], axis=1)
 y = df['monthly_revenue_usd']
 
-# 2. Primera división: Separar el Test Set (15%)
-# random_state=42 asegura que si corres el código de nuevo, la división sea la misma (Reproducibilidad)
 X_train_temp, X_test, y_train_temp, y_test = train_test_split(
     X, y, test_size=0.15, random_state=42
 )
 
-# 3. Segunda división: Del resto, separamos el Validation Set (aprox 15% del total original)
 X_train, X_val, y_train, y_val = train_test_split(
     X_train_temp, y_train_temp, test_size=0.176, random_state=42 # 0.176 de 0.85 es aprox 0.15
 )
@@ -144,26 +114,17 @@ print(f"Entrenamiento: {len(X_train)}")
 print(f"Validación: {len(X_val)}")
 print(f"Prueba: {len(X_test)}")
 
-import pandas as pd
-
-# Cargar datos
 df = pd.read_csv('esports_pro_players_dataset.csv')
 
-# --- APLICANDO CAPÍTULO 5 ---
-# 1. Eliminar duplicados
 print(f"Duplicados encontrados: {df.duplicated().sum()}")
 df.drop_duplicates(inplace=True)
 
-# 2. Identificar columnas con valor único (Varianza 0)
 counts = df.nunique()
 to_del = [i for i, v in counts.items() if v == 1]
 df.drop(columns=to_del, inplace=True)
 print(f"Columnas eliminadas por ser constantes: {to_del}")
 
-# --- APLICANDO CAPÍTULO 3/7 ---
-# 3. Imputación de nulos (Estrategia: Mediana)
 df['followers_count'] = df['followers_count'].fillna(df['followers_count'].median())
 df['monthly_revenue_usd'] = df['monthly_revenue_usd'].fillna(df['monthly_revenue_usd'].mean())
 
-# Guardar versión procesada
-df.to_csv('esports_cleaned_final.csv', index=False)
+df.to_csv('esports_cleaned .v2.csv', index=False)
