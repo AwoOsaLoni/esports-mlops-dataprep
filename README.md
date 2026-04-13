@@ -1,4 +1,5 @@
 eSports Revenue Prediction System 🎮📊
+
 MLOps Pipeline: Lab III Finalizado - Maestría en Informática
 Este proyecto implementa un sistema de orquestación de contenedores para el despliegue de un modelo de Machine Learning (Random Forest) enfocado en la predicción de ingresos mensuales para jugadores de eSports. El sistema está diseñado siguiendo principios de MLOps para garantizar la reproducibilidad y el aislamiento del entorno.
 
